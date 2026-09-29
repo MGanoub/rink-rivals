@@ -1,10 +1,13 @@
-import { resize, cvs, view } from "./canvas.js";
+import { resize } from "./canvas.js";
 import { render } from "./render/renderer.js";
 import { update } from "./game/physics.js";
-import { puck } from "./game/state.js";
+import { initInput } from "./game/input.js";
+import { faceoff } from "./game/rules.js";
 
 resize();
 window.addEventListener("resize", resize);
+initInput();
+faceoff(-1); // puck in the exact center, skaters in position
 
 let last = performance.now();
 
@@ -18,13 +21,3 @@ function loop(now) {
   requestAnimationFrame(loop); // ask the browser to call us again next frame
 }
 requestAnimationFrame(loop);
-
-// --- TEMPORARY TEST: tap anywhere and the puck slides there ---
-cvs.addEventListener("pointerdown", (e) => {
-  const r = cvs.getBoundingClientRect();
-  const tx = (e.clientX - r.left) / view.scale; // screen pixels → world units
-  const ty = (e.clientY - r.top) / view.scale;
-  const k = -Math.log(0.62); // ≈ 0.478
-  puck.vx = (tx - puck.x) * k;
-  puck.vy = (ty - puck.y) * k;
-});

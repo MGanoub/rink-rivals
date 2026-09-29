@@ -1,5 +1,16 @@
-import { RW, RH, PR, GL, GR } from "../config.js";
-import { puck, trail, game } from "./state.js";
+import {
+  RW,
+  RH,
+  PR,
+  GL,
+  GR,
+  SR,
+  SKATE_PULL,
+  MAX_SKATE,
+  GRIP,
+  GLIDE,
+} from "../config.js";
+import { puck, trail, game, players } from "./state.js";
 import { scored, tickGoal } from "./rules.js";
 
 const FRICTION = 0.62;
@@ -90,7 +101,52 @@ function checkGoal() {
   }
 }
 
+export function clampHalf(i, x, y) {
+  x = Math.max(SR, Math.min(RW - SR, x));
+  y =
+    i === 0
+      ? Math.max(RH / 2 + SR, Math.min(RH - SR, y))
+      : Math.max(SR, Math.min(RH / 2 - SR, y));
+  return [x, y];
+}
+
+function stepPlayer(p, i, dt) {
+  const active = p.ptr !== null;
+  let dvx = 0,
+    dvy = 0; // desired velocity
+
+  if (active) {
+    dvx = (p.tx - p.x) * SKATE_PULL; // further away → want to go faster
+    dvy = (p.ty - p.y) * SKATE_PULL;
+    const m = Math.hypot(dvx, dvy);
+    if (m > MAX_SKATE) {
+      dvx *= MAX_SKATE / m;
+      dvy *= MAX_SKATE / m;
+    }
+  }
+
+  // move actual velocity part of the way toward desired velocity → icy drift
+  const k = Math.min(1, (active ? GRIP : GLIDE) * dt);
+  p.vx += (dvx - p.vx) * k;
+  p.vy += (dvy - p.vy) * k;
+
+  p.x += p.vx * dt;
+  p.y += p.vy * dt;
+
+  // stay in your half; kill velocity into the edge so you don't stick to it
+  const [cx, cy] = clampHalf(i, p.x, p.y);
+  if (cx !== p.x) {
+    p.x = cx;
+    p.vx = 0;
+  }
+  if (cy !== p.y) {
+    p.y = cy;
+    p.vy = 0;
+  }
+}
+
 export function update(dt) {
+  players.forEach((p, i) => stepPlayer(p, i, dt));
   if (game.mode === "play") {
     stepPuck(dt);
     walls();

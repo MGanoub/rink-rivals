@@ -1,6 +1,6 @@
 import { beginWorld } from "../canvas.js";
 import { drawRink } from "./rink.js";
-import { drawPuck } from "./entities.js";
+import { drawPuck, drawSkaters } from "./entities.js";
 import { drawScore, drawGoal } from "./hud.js";
 import { game } from "../game/state.js";
 
@@ -9,5 +9,6 @@ export function render() {
   drawRink();
   drawScore();
   if (game.mode !== "goal") drawPuck();
+  drawSkaters();
   drawGoal();
 }

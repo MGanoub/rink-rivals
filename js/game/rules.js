@@ -1,7 +1,18 @@
 import { RW, RH } from "../config.js";
-import { puck, trail, game } from "./state.js";
+import { puck, trail, game, players } from "./state.js";
 
 export function faceoff(conceder) {
+  const [red, blue] = players;
+  red.x = RW / 2;
+  red.y = RH - 110;
+  blue.x = RW / 2;
+  blue.y = 110;
+  players.forEach((p) => {
+    p.vx = p.vy = 0;
+    p.tx = p.x;
+    p.ty = p.y;
+  });
+
   puck.x = RW / 2;
   puck.y = RH / 2 + (conceder === 0 ? 45 : conceder === 1 ? -45 : 0);
   puck.vx = 0;
