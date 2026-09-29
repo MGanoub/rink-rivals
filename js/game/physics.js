@@ -9,9 +9,11 @@ import {
   MAX_SKATE,
   GRIP,
   GLIDE,
+  UPDATE_SUBSTEPS,
 } from "../config.js";
 import { puck, trail, game, players } from "./state.js";
 import { scored, tickGoal } from "./rules.js";
+import { clack } from "../audio.js";
 
 const FRICTION = 0.62;
 const BOUNCE = 0.88; // keep 88% of speed when hitting the boards
@@ -53,6 +55,7 @@ export function bouncePuck(cx, cy, r, vx, vy, bounceSpeed) {
   if (vn < 0) {
     puck.vx -= (1 + bounceSpeed) * vn * nx;
     puck.vy -= (1 + bounceSpeed) * vn * ny;
+    clack(-vn);
   }
   return true;
 }
@@ -61,22 +64,25 @@ function walls() {
   // side boards
   if (puck.x < PR) {
     puck.x = PR;
+    if (puck.vx < 0) clack(-puck.vx * 0.6);
     puck.vx = Math.abs(puck.vx) * BOUNCE;
   }
   if (puck.x > RW - PR) {
     puck.x = RW - PR;
+    if (puck.vx > 0) clack(puck.vx * 0.6);
     puck.vx = -Math.abs(puck.vx) * BOUNCE;
   }
 
-  // end boards, except where the goal mouth is
   const inMouth = puck.x > GL && puck.x < GR;
   if (!inMouth) {
     if (puck.y < PR) {
       puck.y = PR;
+      if (puck.vy < 0) clack(-puck.vy * 0.6);
       puck.vy = Math.abs(puck.vy) * BOUNCE;
     }
     if (puck.y > RH - PR) {
       puck.y = RH - PR;
+      if (puck.vy > 0) clack(puck.vy * 0.6);
       puck.vy = -Math.abs(puck.vy) * BOUNCE;
     }
   }
@@ -91,6 +97,11 @@ function walls() {
   if (puck.y < 0 || puck.y > RH) {
     puck.x = Math.max(GL + PR, Math.min(GR - PR, puck.x));
   }
+}
+
+function skaterHits() {
+  // skater velocity is passed in: a moving skater "shoots", a still one "blocks"
+  players.forEach((p) => bouncePuck(p.x, p.y, SR, p.vx, p.vy, 0.9));
 }
 
 function checkGoal() {
@@ -146,14 +157,22 @@ function stepPlayer(p, i, dt) {
 }
 
 export function update(dt) {
-  players.forEach((p, i) => stepPlayer(p, i, dt));
+  const h = dt / UPDATE_SUBSTEPS;
+  for (let s = 0; s < UPDATE_SUBSTEPS; s++) {
+    players.forEach((p, i) => stepPlayer(p, i, h));
+
+    if (game.mode === "play") {
+      stepPuck(h);
+      walls();
+      skaterHits();
+      checkGoal();
+    }
+    if (game.mode !== "play") break; // goal scored mid-frame → stop simulating the puck
+  }
+  if (game.mode === "goal") tickGoal(dt);
+
   if (game.mode === "play") {
-    stepPuck(dt);
-    walls();
-    checkGoal();
-    trail.push({ x: puck.x, y: puck.y });
+    trail.push({ x: puck.x, y: puck.y }); // once per frame, not per substep
     if (trail.length > 14) trail.shift();
-  } else if (game.mode === "goal") {
-    tickGoal(dt);
   }
 }

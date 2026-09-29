@@ -1,5 +1,6 @@
 import { RW, RH } from "../config.js";
 import { puck, trail, game, players } from "./state.js";
+import { horn } from "../audio.js";
 
 export function faceoff(conceder) {
   const [red, blue] = players;
@@ -26,6 +27,10 @@ export function scored(by) {
   game.goalT = 0;
   game.pauseT = 1.5;
   game.mode = "goal";
+  horn();
+  try {
+    navigator.vibrate?.(120);
+  } catch (e) {}
 }
 
 export function tickGoal(dt) {

@@ -2,6 +2,7 @@ import { cvs, view } from "../canvas.js";
 import { RH } from "../config.js";
 import { players } from "./state.js";
 import { clampHalf } from "./physics.js";
+import { ensureAudio } from "../audio.js";
 
 function toWorld(e) {
   const r = cvs.getBoundingClientRect();
@@ -20,6 +21,7 @@ function aim(i, w) {
 
 function onDown(e) {
   e.preventDefault();
+  ensureAudio();
   const w = toWorld(e);
   const i = w.y > RH / 2 ? 0 : 1; // which half did the finger land in?
   const p = players[i];

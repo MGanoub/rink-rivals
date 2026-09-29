@@ -13,3 +13,5 @@ export const SKATE_PULL = 13; // how hard the skater is pulled toward the finger
 export const MAX_SKATE = 1150; // top speed
 export const GRIP = 11; // how fast velocity follows the desired velocity
 export const GLIDE = 3; // the same, when no finger is down (lower = longer glide)
+
+export const UPDATE_SUBSTEPS = 5;
