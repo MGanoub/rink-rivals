@@ -8,18 +8,20 @@ body {
   overflow: hidden;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 #wrap {
+  position: relative;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
 }
 canvas {
   display: block;
   border-radius: 28px;
   box-shadow: 0 0 0 5px #14233a;
+  touch-action: none;
 }
 
 .overlay {
@@ -45,7 +47,9 @@ canvas {
   font-family: system-ui, sans-serif;
   color: #14233a;
 }
+
 h1,
+h2,
 .big {
   font-family: Bungee, Impact, sans-serif;
   font-weight: 400;
@@ -61,6 +65,10 @@ h1 .r {
 h1 .b {
   color: #1d5fd1;
 }
+h2 {
+  font-size: 24px;
+  margin-bottom: 14px;
+}
 .big {
   font-size: 40px;
   margin-bottom: 6px;
@@ -69,12 +77,17 @@ h1 .b {
   color: #51647d;
   margin: 8px 0 16px;
 }
+
 button {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
   border-radius: 12px;
   border: 3px solid #14233a;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .primary {
   display: block;
@@ -86,6 +99,10 @@ button {
   color: #fff;
   border-color: #d7263d;
 }
+.primary.blue {
+  background: #1d5fd1;
+  border-color: #1d5fd1;
+}
 .secondary {
   display: block;
   width: 100%;
@@ -95,6 +112,14 @@ button {
   background: transparent;
   color: #14233a;
 }
+.pair {
+  display: flex;
+  gap: 8px;
+}
+.pair .primary {
+  flex: 1;
+}
+
 .row {
   display: flex;
   gap: 8px;
@@ -135,6 +160,46 @@ button {
   font-weight: 500;
   font-size: 13px;
 }
+
+label {
+  display: block;
+  text-align: left;
+  font-size: 14px;
+  color: #51647d;
+  margin: 10px 0 4px;
+}
+input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 17px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 2px solid #14233a;
+  user-select: text;
+  -webkit-user-select: text;
+}
+#joinCode {
+  font-family: Bungee, sans-serif;
+  letter-spacing: 6px;
+  text-align: center;
+  font-size: 22px;
+  text-transform: uppercase;
+}
+.err {
+  color: #d7263d;
+  font-weight: 700;
+  min-height: 1.2em;
+  margin: 10px 0 0;
+}
+.code {
+  font-family: Bungee, sans-serif;
+  font-size: 52px;
+  letter-spacing: 8px;
+  color: #1d5fd1;
+  margin: 6px 0;
+}
+
 #leave {
   position: absolute;
   left: 14px;

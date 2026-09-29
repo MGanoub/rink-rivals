@@ -5,15 +5,20 @@ export const puck = { x: RW / 2, y: RH / 2, vx: 0, vy: 0 };
 export const trail = [];
 
 export const game = {
-  role: "none", // 'none' | 'local' | 'cpu'
+  role: "none", // 'none' | 'local' | 'cpu' | 'host' | 'guest'
   mode: "menu", // 'play' | 'goal'
+  target: 5,
   score: [0, 0], // [red, blue]
   goalBy: -1, // who scored last
   goalT: 0, // seconds since the goal (for the animation)
   pauseT: 0, // seconds left before the faceoff
+  faceoffN: 0,
 };
 
 export const playing = () => game.mode === "play" || game.mode === "goal";
+
+export const myIndex = () => (game.role === "guest" ? 1 : 0); // which skater is "me"
+export const flipped = () => game.role === "guest"; // guest sees the rink rotated
 
 // tx, ty is where the player wants to go (their finger).
 // ptr is the id of the finger controlling this skater, or null if no finger is down.

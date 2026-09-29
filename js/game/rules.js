@@ -5,6 +5,7 @@ import { horn } from "../audio.js";
 export const hooks = { onGameOver: null };
 
 export function faceoff(conceder) {
+  game.faceoffN++;
   const [red, blue] = players;
   red.x = RW / 2;
   red.y = RH - 110;
@@ -35,13 +36,17 @@ export function scored(by) {
   } catch (e) {}
 }
 
-export function startLocal(role) {
-  game.role = role;
-  players[1].name = role === "cpu" ? "Computer" : "Blue";
+export function startMatch() {
   game.score = [0, 0];
   game.goalBy = -1;
   faceoff(-1);
   game.mode = "play";
+}
+
+export function startLocal(role) {
+  game.role = role;
+  players[1].name = role === "cpu" ? "Computer" : "Blue";
+  startMatch();
 }
 
 export function tickGoal(dt) {
