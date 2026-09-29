@@ -122,17 +122,19 @@ export function clampHalf(i, x, y) {
 }
 
 function stepPlayer(p, i, dt) {
-  const active = p.ptr !== null;
+  const isCpu = game.role === "cpu" && i === 1;
+  const active = p.ptr !== null || isCpu;
+  const maxV = isCpu ? 560 : MAX_SKATE; // difficulty knob
   let dvx = 0,
-    dvy = 0; // desired velocity
+    dvy = 0;
 
   if (active) {
     dvx = (p.tx - p.x) * SKATE_PULL; // further away → want to go faster
     dvy = (p.ty - p.y) * SKATE_PULL;
     const m = Math.hypot(dvx, dvy);
-    if (m > MAX_SKATE) {
-      dvx *= MAX_SKATE / m;
-      dvy *= MAX_SKATE / m;
+    if (m > maxV) {
+      dvx *= maxV / m;
+      dvy *= maxV / m;
     }
   }
 

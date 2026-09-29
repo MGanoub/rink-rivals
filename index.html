@@ -8,7 +8,35 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div id="wrap"><canvas id="c"></canvas></div>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <button id="leave" class="hidden" aria-label="Leave game">✕</button>
+
+  <div id="menu" class="overlay">
+    <div class="card">
+      <h1><span class="r">Rink</span> <span class="b">Rivals</span></h1>
+      <p class="sub">Arcade ice hockey for two.</p>
+      <button class="primary" id="btn2p">2 players, one phone</button>
+      <button class="secondary" id="btnCpu">Practice vs computer</button>
+      <div class="row">First to
+        <span class="seg" id="seg">
+          <button data-n="3">3</button><button data-n="5" class="on">5</button><button data-n="7">7</button>
+        </span>
+      </div>
+      <p class="tally">Record: <b class="rd" id="recR">0</b> Red · Blue <b class="bl" id="recB">0</b>
+        <br><button class="link" id="resetRec">Reset record</button></p>
+    </div>
+  </div>
+
+  <div id="over" class="overlay hidden">
+    <div class="card">
+      <div class="big" id="winText">Red wins</div>
+      <p class="sub" id="finalScore">5–3</p>
+      <button class="primary" id="btnRematch">Rematch</button>
+      <button class="secondary" id="btnMenu">Back to menu</button>
+    </div>
+  </div>
+</div>
 <script type="module"src="js/main.js"></script>
 </body>
 </html>

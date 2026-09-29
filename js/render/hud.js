@@ -16,12 +16,18 @@ export function drawScore() {
 
   // Blue sits on the other side of the phone, so rotate 180°
   ctx.save();
-  ctx.fillStyle = BLUE;
-  ctx.translate(RW - 16, RH / 2 - 34);
-  ctx.rotate(Math.PI);
-  ctx.textAlign = "left";
-  ctx.fillText(game.score[1], 0, 0);
-  ctx.restore();
+  if (game.role === "local") {
+    // Blue is across the table → upside down
+    ctx.save();
+    ctx.translate(RW - 16, RH / 2 - 34);
+    ctx.rotate(Math.PI);
+    ctx.textAlign = "left";
+    ctx.fillText(game.score[1], 0, 0);
+    ctx.restore();
+  } else {
+    // one person holding the phone → upright
+    ctx.fillText(game.score[1], RW - 16, RH / 2 - 30);
+  }
 
   ctx.globalAlpha = 1;
 }
@@ -47,5 +53,5 @@ export function drawGoal() {
     ctx.restore();
   };
   draw(RH * 0.72, 0); // for the bottom player
-  draw(RH * 0.28, Math.PI); // upside down for the top player
+  if (game.role === "local") draw(RH * 0.28, Math.PI);
 }

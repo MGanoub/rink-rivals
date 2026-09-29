@@ -14,9 +14,136 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 canvas {
   display: block;
   border-radius: 28px;
   box-shadow: 0 0 0 5px #14233a;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 23, 38, 0.45);
+  backdrop-filter: blur(3px);
+  touch-action: auto;
+}
+.hidden {
+  display: none !important;
+}
+.card {
+  background: #f7fbfe;
+  border: 3px solid #14233a;
+  border-radius: 18px;
+  padding: 22px 20px 18px;
+  width: min(88%, 330px);
+  text-align: center;
+  font-family: system-ui, sans-serif;
+  color: #14233a;
+}
+h1,
+.big {
+  font-family: Bungee, Impact, sans-serif;
+  font-weight: 400;
+  margin: 0;
+  line-height: 1;
+}
+h1 {
+  font-size: 36px;
+}
+h1 .r {
+  color: #d7263d;
+}
+h1 .b {
+  color: #1d5fd1;
+}
+.big {
+  font-size: 40px;
+  margin-bottom: 6px;
+}
+.sub {
+  color: #51647d;
+  margin: 8px 0 16px;
+}
+button {
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 12px;
+  border: 3px solid #14233a;
+}
+.primary {
+  display: block;
+  width: 100%;
+  padding: 13px;
+  margin-top: 10px;
+  font-size: 18px;
+  background: #d7263d;
+  color: #fff;
+  border-color: #d7263d;
+}
+.secondary {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 17px;
+  background: transparent;
+  color: #14233a;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16px;
+  color: #51647d;
+}
+.seg button {
+  padding: 5px 12px;
+  background: transparent;
+  border-width: 2px;
+}
+.seg button.on {
+  background: #14233a;
+  color: #fff;
+}
+.tally {
+  margin: 14px 0 0;
+  color: #51647d;
+}
+.tally b {
+  font-family: Bungee, sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+}
+.rd {
+  color: #d7263d;
+}
+.bl {
+  color: #1d5fd1;
+}
+.link {
+  background: none;
+  border: none;
+  color: #51647d;
+  text-decoration: underline;
+  font-weight: 500;
+  font-size: 13px;
+}
+#leave {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f7fbfe;
+  padding: 0;
+  border-width: 2px;
 }

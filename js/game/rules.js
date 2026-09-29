@@ -2,6 +2,8 @@ import { RW, RH } from "../config.js";
 import { puck, trail, game, players } from "./state.js";
 import { horn } from "../audio.js";
 
+export const hooks = { onGameOver: null };
+
 export function faceoff(conceder) {
   const [red, blue] = players;
   red.x = RW / 2;
@@ -33,11 +35,25 @@ export function scored(by) {
   } catch (e) {}
 }
 
+export function startLocal(role) {
+  game.role = role;
+  players[1].name = role === "cpu" ? "Computer" : "Blue";
+  game.score = [0, 0];
+  game.goalBy = -1;
+  faceoff(-1);
+  game.mode = "play";
+}
+
 export function tickGoal(dt) {
   game.goalT += dt;
   game.pauseT -= dt;
   if (game.pauseT <= 0) {
-    faceoff(1 - game.goalBy);
-    game.mode = "play";
+    if (game.score[game.goalBy] >= game.target) {
+      game.mode = "over";
+      hooks.onGameOver?.(); // tell the UI; rules don't know HTML exists
+    } else {
+      faceoff(1 - game.goalBy);
+      game.mode = "play";
+    }
   }
 }

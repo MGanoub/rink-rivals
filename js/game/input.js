@@ -1,6 +1,6 @@
 import { cvs, view } from "../canvas.js";
 import { RH } from "../config.js";
-import { players } from "./state.js";
+import { players, game, playing } from "./state.js";
 import { clampHalf } from "./physics.js";
 import { ensureAudio } from "../audio.js";
 
@@ -20,10 +20,11 @@ function aim(i, w) {
 }
 
 function onDown(e) {
+  if (!playing()) return;
   e.preventDefault();
   ensureAudio();
   const w = toWorld(e);
-  const i = w.y > RH / 2 ? 0 : 1; // which half did the finger land in?
+  const i = game.role === "cpu" ? 0 : w.y > RH / 2 ? 0 : 1;
   const p = players[i];
   if (p.ptr !== null && p.ptr !== e.pointerId) return; // that player already has a finger down
 

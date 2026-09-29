@@ -2,22 +2,25 @@ import { resize } from "./canvas.js";
 import { render } from "./render/renderer.js";
 import { update } from "./game/physics.js";
 import { initInput } from "./game/input.js";
-import { faceoff } from "./game/rules.js";
+import { initScreens } from "./ui/screens.js";
+import { cpuThink } from "./game/ai.js";
+import { game, playing } from "./game/state.js";
 
 resize();
 window.addEventListener("resize", resize);
 initInput();
-faceoff(-1); // puck in the exact center, skaters in position
+initScreens();
 
 let last = performance.now();
-
 function loop(now) {
-  // dt = seconds since the last frame; capped so a lag spike can't teleport things
   const dt = Math.min(1 / 30, (now - last) / 1000);
   last = now;
 
-  update(dt);
-  render();
-  requestAnimationFrame(loop); // ask the browser to call us again next frame
+  if (playing()) {
+    if (game.role === "cpu" && game.mode === "play") cpuThink();
+    update(dt);
+  }
+  render(); // always draw, so the rink shows behind menus
+  requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
