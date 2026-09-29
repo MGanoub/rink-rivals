@@ -25,7 +25,7 @@ export const netHooks = {
   onRematchRequest: null,
 };
 
-const STATE_MS = 50; // host sends 20 times/s
+const STATE_MS = 33; // host sends 30 times/s
 const INPUT_MS = 33; // guest sends 30 times/s
 const R = Math.round;
 
