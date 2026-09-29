@@ -1,4 +1,4 @@
-import { RW, RH, PR, SR, GL, GR } from "../config.js";
+import { RW, RH, PR, SR, GL, GR, CR } from "../config.js";
 import { puck, trail, game, players } from "./state.js";
 import { scored, tickGoal } from "./rules.js";
 import { clack } from "../audio.js";
@@ -13,6 +13,34 @@ const MAX_SKATE = 1150;
 const GRIP = 11;
 const GLIDE = 3;
 
+// the four corner arc centers
+const CORNERS = [
+  [CR, CR],
+  [RW - CR, CR],
+  [CR, RH - CR],
+  [RW - CR, RH - CR],
+];
+
+// if (x, y) is out past a corner arc, pull it back onto the arc; returns the normal or null
+function cornerClamp(o, radius) {
+  const limit = CR - radius;
+  for (const [cx, cy] of CORNERS) {
+    const inX = cx < RW / 2 ? o.x < cx : o.x > cx;
+    const inY = cy < RH / 2 ? o.y < cy : o.y > cy;
+    if (!inX || !inY) continue; // not in this corner's zone
+    const dx = o.x - cx,
+      dy = o.y - cy,
+      d = Math.hypot(dx, dy);
+    if (d <= limit) continue; // still inside the curve
+    const nx = dx / d,
+      ny = dy / d;
+    o.x = cx + nx * limit;
+    o.y = cy + ny * limit;
+    return [nx, ny];
+  }
+  return null;
+}
+
 // keep a point inside a player's own half (Red = bottom, Blue = top)
 export function clampHalf(i, x, y) {
   x = Math.max(SR, Math.min(RW - SR, x));
@@ -20,6 +48,7 @@ export function clampHalf(i, x, y) {
     i === 0
       ? Math.max(RH / 2 + SR, Math.min(RH - SR, y))
       : Math.max(SR, Math.min(RH / 2 - SR, y));
+
   return [x, y];
 }
 

@@ -15,3 +15,5 @@ export const GRIP = 11; // how fast velocity follows the desired velocity
 export const GLIDE = 3; // the same, when no finger is down (lower = longer glide)
 
 export const UPDATE_SUBSTEPS = 5;
+
+export const CR = 48; // rounded corner radius (real rinks have these)
