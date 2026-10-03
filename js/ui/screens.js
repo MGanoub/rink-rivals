@@ -172,6 +172,23 @@ export function initScreens() {
     $("btnJoinGo").disabled = false;
   };
 
+  // share the code as a link: opens the phone's share sheet (WhatsApp, etc.)
+  $("btnShare").onclick = async () => {
+    const code = $("codeText").textContent;
+    const url = `${location.origin}${location.pathname}?room=${code}`;
+    const text = `Join my Rink Rivals game! Room code: ${code}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Rink Rivals", text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        $("btnShare").textContent = "Copied!";
+      }
+    } catch (e) {
+      /* share sheet closed: nothing to do */
+    }
+  };
+
   // --- network events ---
   netHooks.onGuestJoined = () => {
     if (game.role === "host" && game.mode === "wait") {

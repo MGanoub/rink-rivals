@@ -6,6 +6,8 @@ export const hooks = { onGameOver: null };
 
 export function faceoff(conceder) {
   game.faceoffN++;
+  game.puckK += game.puckK % 2 === 0 ? 2 : 1; // next even number: host owns the puck at faceoff
+
   const [red, blue] = players;
   red.x = RW / 2;
   red.y = RH - 110;
@@ -19,21 +21,8 @@ export function faceoff(conceder) {
 
   puck.x = RW / 2;
   puck.y = RH / 2 + (conceder === 0 ? 45 : conceder === 1 ? -45 : 0);
-  puck.vx = 0;
-  puck.vy = 0;
+  puck.vx = puck.vy = 0;
   trail.length = 0;
-}
-
-export function scored(by) {
-  game.score[by] += 1;
-  game.goalBy = by;
-  game.goalT = 0;
-  game.pauseT = 1.5;
-  game.mode = "goal";
-  horn();
-  try {
-    navigator.vibrate?.(120);
-  } catch (e) {}
 }
 
 export function startMatch() {
@@ -49,13 +38,25 @@ export function startLocal(role) {
   startMatch();
 }
 
+export function scored(by) {
+  game.score[by]++;
+  game.goalBy = by;
+  game.goalT = 0;
+  game.pauseT = 1.5;
+  game.mode = "goal";
+  horn();
+  try {
+    navigator.vibrate?.(120);
+  } catch (e) {}
+}
+
 export function tickGoal(dt) {
   game.goalT += dt;
   game.pauseT -= dt;
   if (game.pauseT <= 0) {
     if (game.score[game.goalBy] >= game.target) {
       game.mode = "over";
-      hooks.onGameOver?.(); // tell the UI; rules don't know HTML exists
+      hooks.onGameOver?.();
     } else {
       faceoff(1 - game.goalBy);
       game.mode = "play";

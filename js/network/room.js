@@ -12,11 +12,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { FIREBASE_CONFIG } from "./firebase-config.js";
 import { RW } from "../config.js";
-import { game, puck, players, trail } from "../game/state.js";
+import { game, puck, players, trail, net } from "../game/state.js";
 import { clampHalf } from "../game/physics.js";
 import { horn } from "../audio.js";
 
-// the UI subscribes to these
 export const netHooks = {
   onGuestJoined: null,
   onGuestLeft: null,
@@ -34,9 +33,10 @@ let db = null,
   unsubs = [],
   lastSend = 0;
 let lastMode = null,
-  lastF = -1; // host: what we sent last
-let remote = null,
-  remoteT = 0; // host: latest guest input
+  lastF = -1,
+  lastPK = -1; // host: what we sent last
+let lastK = -1,
+  lastGoal = false; // guest: what we sent last
 let rs = null,
   rsT = 0,
   guestF = -1; // guest: latest host state
@@ -55,13 +55,13 @@ function getDb() {
   }
   return db;
 }
-const at = (name) => child(roomRef, name); // rooms/CODE/name
+const at = (name) => child(roomRef, name);
 function listen(r, fn) {
   unsubs.push(onValue(r, fn));
-} // onValue returns an unsubscribe function
+}
 
 function genCode() {
-  const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I, O, 0, 1: easy to read out loud
+  const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let c = "";
   for (let i = 0; i < 4; i++) c += A[Math.floor(Math.random() * A.length)];
   return c;
@@ -72,26 +72,30 @@ export async function createRoom() {
   const d = getDb();
   for (let i = 0; i < 6; i++) {
     const r = ref(d, "rooms/" + genCode());
-    // only write if the code is free, even if two people try at the same moment
     const res = await runTransaction(r, (cur) =>
-      cur === null ? { created: Date.now() } : undefined,
+      cur === null ? { created: Date.now(), hostOnline: true } : undefined,
     );
     if (res.committed) {
       roomRef = r;
-      onDisconnect(r).remove(); // server deletes the room if my phone drops
+      listen(ref(d, ".info/connected"), (s) => {
+        if (s.val() !== true || !roomRef) return;
+        onDisconnect(at("hostOnline")).set(false); // re-arm on every (re)connect
+        set(at("hostOnline"), true);
+      });
       lastMode = null;
+      lastPK = -1;
 
       listen(at("guest"), (s) => {
         if (s.exists()) netHooks.onGuestJoined?.();
         else {
-          remote = null;
+          net.remote = null;
           remove(at("s"));
           netHooks.onGuestLeft?.();
         }
       });
       listen(at("in"), (s) => {
-        remote = s.val();
-        remoteT = performance.now();
+        net.remote = s.val();
+        net.remoteT = performance.now();
       });
       listen(at("req"), (s) => {
         if (s.val() === "rematch") {
@@ -99,7 +103,7 @@ export async function createRoom() {
           netHooks.onRematchRequest?.();
         }
       });
-      return r.key; // the 4-letter code
+      return r.key;
     }
   }
   throw new Error("Could not create a room. Try again.");
@@ -110,11 +114,14 @@ export async function joinRoom(code) {
   code = code.toUpperCase().trim();
   if (code.length !== 4) throw new Error("Room codes are 4 characters.");
 
-  const r = ref(d, "rooms/" + code);
   const snap = await get(r);
   if (!snap.exists()) throw new Error("No room with that code.");
 
-  // claim the guest slot atomically, so a third person can't also join
+  const room = snap.val();
+  const ageMin = (Date.now() - room.created) / 60000;
+  if (!room.hostOnline && ageMin > 30)
+    throw new Error("That room has expired.");
+
   const res = await runTransaction(child(r, "guest"), (cur) =>
     cur ? undefined : { joined: Date.now() },
   );
@@ -122,11 +129,15 @@ export async function joinRoom(code) {
 
   roomRef = r;
   guestF = -1;
+  net.guestK = 0;
+  net.goalSent = false;
+  lastK = -1;
+  lastGoal = false;
   onDisconnect(at("guest")).remove();
   listen(at("s"), (s) => onState(s.val()));
   listen(at("created"), (s) => {
     if (!s.exists()) netHooks.onHostLeft?.();
-  }); // room deleted
+  });
 }
 
 export function leaveRoom() {
@@ -146,7 +157,7 @@ export function leaveRoom() {
     } catch (e) {}
   }
   roomRef = null;
-  remote = null;
+  net.remote = null;
   rs = null;
 }
 
@@ -158,11 +169,14 @@ export function requestRematch() {
 export function sendState() {
   if (!roomRef) return;
   const now = performance.now();
-  const important = game.mode !== lastMode || game.faceoffN !== lastF; // send these instantly
+  // mode changes, faceoffs and puck handoffs go out instantly
+  const important =
+    game.mode !== lastMode || game.faceoffN !== lastF || game.puckK !== lastPK;
   if (!important && now - lastSend < STATE_MS) return;
   lastSend = now;
   lastMode = game.mode;
   lastF = game.faceoffN;
+  lastPK = game.puckK;
 
   const red = players[0];
   set(at("s"), {
@@ -172,25 +186,23 @@ export function sendState() {
     m: game.mode,
     g: game.goalBy,
     f: game.faceoffN,
-    t: game.target,
+    t: game.target ?? 5,
+    k: game.puckK,
   });
 }
 
 // put Blue where the guest says she is, guessing ahead by the message's age
 export function applyRemotePlayer() {
-  const b = players[1];
-  if (!remote || remote.f !== game.faceoffN) {
+  const b = players[1],
+    r = net.remote;
+  if (!r || r.f !== game.faceoffN) {
     b.vx = b.vy = 0;
     return;
-  } // she hasn't reset yet
-  const age = Math.min(0.1, (performance.now() - remoteT) / 1000);
-  [b.x, b.y] = clampHalf(
-    1,
-    remote.x + remote.vx * age,
-    remote.y + remote.vy * age,
-  );
-  b.vx = remote.vx;
-  b.vy = remote.vy;
+  }
+  const age = Math.min(0.1, (performance.now() - net.remoteT) / 1000);
+  [b.x, b.y] = clampHalf(1, r.x + r.vx * age, r.y + r.vy * age);
+  b.vx = r.vx;
+  b.vy = r.vy;
 }
 
 // ---------- guest side ----------
@@ -201,8 +213,10 @@ function onState(s) {
   game.target = s.t;
 
   if (s.f !== guestF) {
-    // new faceoff → reset my skater, snap everything
+    // new faceoff → reset everything
     guestF = s.f;
+    net.guestK = s.k;
+    net.goalSent = false;
     const b = players[1];
     b.x = RW / 2;
     b.y = 110;
@@ -211,9 +225,18 @@ function onState(s) {
     b.ty = b.y;
     puck.x = s.p[0];
     puck.y = s.p[1];
+    puck.vx = s.p[2];
+    puck.vy = s.p[3];
     players[0].x = s.r[0];
     players[0].y = s.r[1];
     trail.length = 0;
+  } else if (s.k > net.guestK && s.k % 2 === 1) {
+    // host handed me the puck → continue from his latest puck
+    net.guestK = s.k;
+    puck.x = s.p[0];
+    puck.y = s.p[1];
+    puck.vx = s.p[2];
+    puck.vy = s.p[3];
   }
 
   game.score = [...s.sc];
@@ -231,13 +254,27 @@ function onState(s) {
 export function sendInput() {
   if (!roomRef) return;
   const now = performance.now();
-  if (now - lastSend < INPUT_MS) return;
+  // handoffs and goal reports go out instantly
+  const important = net.guestK !== lastK || net.goalSent !== lastGoal;
+  if (!important && now - lastSend < INPUT_MS) return;
   lastSend = now;
+  lastK = net.guestK;
+  lastGoal = net.goalSent;
+
   const b = players[1];
-  set(at("in"), { x: R(b.x), y: R(b.y), vx: R(b.vx), vy: R(b.vy), f: guestF });
+  set(at("in"), {
+    x: R(b.x),
+    y: R(b.y),
+    vx: R(b.vx),
+    vy: R(b.vy),
+    f: guestF,
+    k: net.guestK,
+    p: [R(puck.x), R(puck.y), R(puck.vx), R(puck.vy)],
+    goal: net.goalSent ? guestF : -1,
+  });
 }
 
-// extrapolate (guess ahead) + interpolate (ease toward) the puck and Red
+// follow the host's puck (only when he owns it) and his skater, smoothly
 export function applyRemoteState(dt) {
   if (!rs) return;
   const age = Math.min(0.12, (performance.now() - rsT) / 1000);
@@ -248,14 +285,16 @@ export function applyRemoteState(dt) {
     if (Math.hypot(tx - o.x, ty - o.y) > 90) {
       o.x = tx;
       o.y = ty;
-    } // way off → snap
-    else {
+    } else {
       o.x += (tx - o.x) * k;
       o.y += (ty - o.y) * k;
-    } // close → glide
+    }
     o.vx = a[2];
     o.vy = a[3];
   };
-  follow(puck, rs.p);
+
+  const iOwn = net.guestK % 2 === 1;
+  const handingBack = !iOwn && rs.k < net.guestK; // I passed it back, he hasn't confirmed yet
+  if (!iOwn && !handingBack) follow(puck, rs.p);
   follow(players[0], rs.r);
 }
