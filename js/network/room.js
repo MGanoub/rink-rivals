@@ -114,6 +114,7 @@ export async function joinRoom(code) {
   code = code.toUpperCase().trim();
   if (code.length !== 4) throw new Error("Room codes are 4 characters.");
 
+  const r = ref(d, "rooms/" + code); // ← the line that defines r
   const snap = await get(r);
   if (!snap.exists()) throw new Error("No room with that code.");
 
